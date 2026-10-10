@@ -101,6 +101,36 @@ jobs:
           change("module/modules/render/HUD.java",
                  "mc.currentScreen instanceof ClickGui",
                  "mc.currentScreen instanceof DqrkisClickGui")
+
+          # Disable the outdated chat-name filtering mixin. In 1.21.11 its target
+          # method descriptor no longer exists and causes a fatal startup crash.
+          mixin_path = Path("src/main/resources/client.mixins.json")
+          mixins = mixin_path.read_text(encoding="utf-8")
+          if mixins.count('    "ChatHudMixin",') != 1:
+              raise RuntimeError("Expected one ChatHudMixin entry")
+          mixin_path.write_text(mixins.replace('    "ChatHudMixin",\n', '', 1), encoding="utf-8")
+
+          # F12 is the only default ClickGUI key, including previously saved profiles.
+          change("module/modules/client/ClickGUI.java",
+                 "GLFW.GLFW_KEY_RIGHT_SHIFT,\n\t\t\t\tCategory.CLIENT);",
+                 "GLFW.GLFW_KEY_F12,\n\t\t\t\tCategory.CLIENT);")
+          change("Dqrkis.java",
+                 "\t\tthis.getProfileManager().loadProfile();\n\t\tthis.setLastModified();",
+                 """\t\tthis.getProfileManager().loadProfile();
+\t\tvar guiModule = moduleManager.getModule(xyz.dqrkis.module.modules.client.ClickGUI.class);
+\t\tif (guiModule != null) {
+\t\t\tguiModule.setKey(org.lwjgl.glfw.GLFW.GLFW_KEY_F12);
+\t\t\tfor (var setting : guiModule.getSettings()) {
+\t\t\t\tif (setting instanceof xyz.dqrkis.module.setting.KeybindSetting ks && ks.isModuleKey()) {
+\t\t\t\t\tks.setKey(org.lwjgl.glfw.GLFW.GLFW_KEY_F12);
+\t\t\t\t}
+\t\t\t}
+\t\t}
+\t\tthis.setLastModified();""")
+          change("gui/DqrkisClickGui.java",
+                 "        if (Dqrkis.INSTANCE.previousScreen != null)\n            Dqrkis.INSTANCE.previousScreen.render(context, 0, 0, delta);",
+                 "        // Avoid rendering a second Screen inside this Screen; prevent reentrant crashes.")
+
           print("GUI changes applied successfully")
           PY
 
@@ -108,7 +138,7 @@ jobs:
         shell: bash
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon clean build -Pmod_version=b1.3-gui
+          ./gradlew --no-daemon clean build -Pmod_version=b1.4-gui
 
       - name: Prepare final JAR
         shell: bash
@@ -117,12 +147,12 @@ jobs:
           find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' -print
           JAR=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' | head -n1)
           test -n "$JAR"
-          cp "$JAR" release/Dqrkis-b1.3-GUI-1.21.11.jar
-          jar tf release/Dqrkis-b1.3-GUI-1.21.11.jar | grep -q 'fabric.mod.json'
+          cp "$JAR" release/Dqrkis-b1.4-F12-1.21.11.jar
+          jar tf release/Dqrkis-b1.4-F12-1.21.11.jar | grep -q 'fabric.mod.json'
 
       - name: Upload Dqrkis GUI JAR
         uses: actions/upload-artifact@v4
         with:
-          name: Dqrkis-b1.3-GUI-1.21.11
+          name: Dqrkis-b1.4-F12-1.21.11
           path: release/*.jar
           if-no-files-found: error
