@@ -51,7 +51,7 @@ jobs:
                  "if (mc.currentScreen instanceof DqrkisClickGui) {\n\t\t\tmc.setScreenAndRender(Dqrkis.INSTANCE.previousScreen);")
 
           change("gui/DqrkisClickGui.java",
-                 "mouseY >= moduleY && mouseY < moduleY + MODULE_HEIGHT",
+                 "if (mouseX >= contentLeft + 6 && mouseX < guiLeft + guiWidth - 6 && mouseY >= moduleY && mouseY < moduleY + MODULE_HEIGHT) {",
                  "mouseY >= Math.max(moduleY, guiTop) && mouseY < Math.min(moduleY + MODULE_HEIGHT, guiTop + guiHeight)")
           change("gui/DqrkisClickGui.java",
                  "mouseY >= moduleY && mouseY < moduleY + SETTING_HEIGHT",
