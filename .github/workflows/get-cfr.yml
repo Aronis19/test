@@ -1,0 +1,25 @@
+name: Get Java decompiler for Dqrkis inspection
+on:
+  push:
+    paths:
+      - .github/workflows/get-cfr.yml
+    branches:
+      - dqrkis-gui-build-20261010
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tool:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download CFR from official Maven Central
+        shell: bash
+        run: |
+          curl -fL --retry 3 --max-time 90 -o cfr-0.152.jar https://repo.maven.apache.org/maven2/org/benf/cfr/0.152/cfr-0.152.jar
+          sha256sum cfr-0.152.jar
+          java -jar cfr-0.152.jar --help | head -n 8
+      - name: Upload verified decompiler artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cfr-decompiler-tool
+          path: cfr-0.152.jar
