@@ -52,7 +52,7 @@ jobs:
 
           change("gui/DqrkisClickGui.java",
                  "if (mouseX >= contentLeft + 6 && mouseX < guiLeft + guiWidth - 6 && mouseY >= moduleY && mouseY < moduleY + MODULE_HEIGHT) {",
-                 "mouseY >= Math.max(moduleY, guiTop) && mouseY < Math.min(moduleY + MODULE_HEIGHT, guiTop + guiHeight)")
+                 "if (mouseX >= contentLeft + 6 && mouseX < guiLeft + guiWidth - 6 && mouseY >= Math.max(moduleY, guiTop) && mouseY < Math.min(moduleY + MODULE_HEIGHT, guiTop + guiHeight)) {")
           change("gui/DqrkisClickGui.java",
                  "mouseY >= moduleY && mouseY < moduleY + SETTING_HEIGHT",
                  "mouseY >= Math.max(moduleY, guiTop) && mouseY < Math.min(moduleY + SETTING_HEIGHT, guiTop + guiHeight)")
