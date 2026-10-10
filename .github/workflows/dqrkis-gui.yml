@@ -117,16 +117,16 @@ jobs:
           change("Dqrkis.java",
                  "\t\tthis.getProfileManager().loadProfile();\n\t\tthis.setLastModified();",
                  """\t\tthis.getProfileManager().loadProfile();
-\t\tvar guiModule = moduleManager.getModule(xyz.dqrkis.module.modules.client.ClickGUI.class);
-\t\tif (guiModule != null) {
-\t\t\tguiModule.setKey(org.lwjgl.glfw.GLFW.GLFW_KEY_F12);
-\t\t\tfor (var setting : guiModule.getSettings()) {
-\t\t\t\tif (setting instanceof xyz.dqrkis.module.setting.KeybindSetting ks && ks.isModuleKey()) {
-\t\t\t\t\tks.setKey(org.lwjgl.glfw.GLFW.GLFW_KEY_F12);
-\t\t\t\t}
-\t\t\t}
-\t\t}
-\t\tthis.setLastModified();""")
+          \t\tvar guiModule = moduleManager.getModule(xyz.dqrkis.module.modules.client.ClickGUI.class);
+          \t\tif (guiModule != null) {
+          \t\t\tguiModule.setKey(org.lwjgl.glfw.GLFW.GLFW_KEY_F12);
+          \t\t\tfor (var setting : guiModule.getSettings()) {
+          \t\t\t\tif (setting instanceof xyz.dqrkis.module.setting.KeybindSetting ks && ks.isModuleKey()) {
+          \t\t\t\t\tks.setKey(org.lwjgl.glfw.GLFW.GLFW_KEY_F12);
+          \t\t\t\t}
+          \t\t\t}
+          \t\t}
+          \t\tthis.setLastModified();""")
           change("gui/DqrkisClickGui.java",
                  "        if (Dqrkis.INSTANCE.previousScreen != null)\n            Dqrkis.INSTANCE.previousScreen.render(context, 0, 0, delta);",
                  "        // Avoid rendering a second Screen inside this Screen; prevent reentrant crashes.")
