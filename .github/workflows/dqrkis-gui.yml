@@ -1,0 +1,128 @@
+name: Build Dqrkis GUI JAR
+on:
+  push:
+    branches:
+      - dqrkis-gui-build-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout OpenDqrkis source (pinned revision)
+        uses: actions/checkout@v4
+        with:
+          repository: knezoWTF/OpenDqrkis
+          ref: a707fdafa5bcbf0ff5af96312e62a7bd3b96b09b
+          persist-credentials: false
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Port Dqrkis GUI
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          base = Path("src/main/java/xyz/dqrkis")
+          def change(path, old, new):
+              p = base / path
+              source = p.read_text(encoding="utf-8")
+              count = source.count(old)
+              if count != 1:
+                  raise RuntimeError(f"Patch failed: {path}, expected one occurrence, found {count}: {old[:100]}")
+              p.write_text(source.replace(old, new, 1), encoding="utf-8")
+
+          change("module/modules/client/ClickGUI.java",
+                 "import xyz.dqrkis.gui.ClickGui;",
+                 "import xyz.dqrkis.gui.DqrkisClickGui;")
+          change("module/modules/client/ClickGUI.java",
+                 "if (Dqrkis.INSTANCE.clickGui != null) {\n\t\t\tmc.setScreenAndRender(Dqrkis.INSTANCE.clickGui);",
+                 "if (Dqrkis.INSTANCE.dqrkisClickGui != null) {\n\t\t\tmc.setScreenAndRender(Dqrkis.INSTANCE.dqrkisClickGui);")
+          change("module/modules/client/ClickGUI.java",
+                 "if (mc.currentScreen instanceof ClickGui) {\n\t\t\tDqrkis.INSTANCE.clickGui.close();\n\t\t\tmc.setScreenAndRender(Dqrkis.INSTANCE.previousScreen);\n\t\t\tDqrkis.INSTANCE.clickGui.onGuiClose();",
+                 "if (mc.currentScreen instanceof DqrkisClickGui) {\n\t\t\tmc.setScreenAndRender(Dqrkis.INSTANCE.previousScreen);")
+
+          change("gui/DqrkisClickGui.java",
+                 "mouseY >= moduleY && mouseY < moduleY + MODULE_HEIGHT",
+                 "mouseY >= Math.max(moduleY, guiTop) && mouseY < Math.min(moduleY + MODULE_HEIGHT, guiTop + guiHeight)")
+          change("gui/DqrkisClickGui.java",
+                 "mouseY >= moduleY && mouseY < moduleY + SETTING_HEIGHT",
+                 "mouseY >= Math.max(moduleY, guiTop) && mouseY < Math.min(moduleY + SETTING_HEIGHT, guiTop + guiHeight)")
+          change("gui/DqrkisClickGui.java",
+                 "        if (keyCode == GLFW.GLFW_KEY_ESCAPE) { close(); return true; }\n        // Forward to module keybind listening",
+                 "        // Forward to module keybind listening")
+          change("gui/DqrkisClickGui.java",
+                 "            for (var s : m.getSettings()) if (s instanceof KeybindSetting ks && ks.isListening()) { ks.setKey(keyCode); ks.setListening(false); return true; }",
+                 "            for (var setting : m.getSettings()) {\n                if (setting instanceof KeybindSetting ks && ks.isListening()) {\n                    ks.setKey(keyCode);\n                    if (ks.isModuleKey()) m.setKey(keyCode);\n                    ks.setListening(false);\n                    return true;\n                }\n            }")
+          change("gui/DqrkisClickGui.java",
+                 "        return super.keyPressed(keyInput);",
+                 "        if (keyCode == GLFW.GLFW_KEY_ESCAPE) { close(); return true; }\n        return super.keyPressed(keyInput);")
+          change("gui/DqrkisClickGui.java",
+                 "    public boolean shouldPause() { return false; }\n}",
+                 """    public boolean shouldPause() { return false; }
+
+    @Override
+    public void close() {
+        var clickGuiModule = Dqrkis.INSTANCE.getModuleManager()
+                .getModule(xyz.dqrkis.module.modules.client.ClickGUI.class);
+        if (clickGuiModule != null && clickGuiModule.isEnabled()) {
+            clickGuiModule.setEnabled(false);
+        } else {
+            net.minecraft.client.MinecraftClient.getInstance()
+                    .setScreenAndRender(Dqrkis.INSTANCE.previousScreen);
+        }
+        searchFocused = false;
+    }
+}""")
+
+          change("gui/components/settings/StringBox.java",
+                 "mc.setScreen(Dqrkis.INSTANCE.clickGui);",
+                 "mc.setScreen(Dqrkis.INSTANCE.dqrkisClickGui);")
+          change("module/modules/client/SelfDestruct.java",
+                 "import xyz.dqrkis.gui.ClickGui;",
+                 "import xyz.dqrkis.gui.DqrkisClickGui;")
+          change("module/modules/client/SelfDestruct.java",
+                 "mc.currentScreen instanceof ClickGui",
+                 "mc.currentScreen instanceof DqrkisClickGui")
+          change("module/modules/render/HUD.java",
+                 "import xyz.dqrkis.gui.ClickGui;",
+                 "import xyz.dqrkis.gui.DqrkisClickGui;")
+          change("module/modules/render/HUD.java",
+                 "mc.currentScreen != Dqrkis.INSTANCE.clickGui",
+                 "mc.currentScreen != Dqrkis.INSTANCE.dqrkisClickGui")
+          change("module/modules/render/HUD.java",
+                 "mc.currentScreen instanceof ClickGui",
+                 "mc.currentScreen instanceof DqrkisClickGui")
+          print("GUI changes applied successfully")
+          PY
+
+      - name: Build mod with Gradle
+        shell: bash
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon clean build -Pmod_version=b1.3-gui
+
+      - name: Prepare final JAR
+        shell: bash
+        run: |
+          mkdir -p release
+          find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' -print
+          JAR=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' | head -n1)
+          test -n "$JAR"
+          cp "$JAR" release/Dqrkis-b1.3-GUI-1.21.11.jar
+          jar tf release/Dqrkis-b1.3-GUI-1.21.11.jar | grep -q 'fabric.mod.json'
+
+      - name: Upload Dqrkis GUI JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dqrkis-b1.3-GUI-1.21.11
+          path: release/*.jar
+          if-no-files-found: error
