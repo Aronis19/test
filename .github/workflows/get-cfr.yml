@@ -1,4 +1,4 @@
-name: Get Java decompiler for Dqrkis inspection
+name: Provision decompilers for Dqrkis inspection
 on:
   push:
     paths:
@@ -18,8 +18,16 @@ jobs:
           curl -fL --retry 3 --max-time 90 -o cfr-0.152.jar https://repo.maven.apache.org/maven2/org/benf/cfr/0.152/cfr-0.152.jar
           sha256sum cfr-0.152.jar
           java -jar cfr-0.152.jar --help | head -n 8
+      - name: Download Vineflower 1.12.0
+        shell: bash
+        run: |
+          curl -fL --retry 3 --max-time 90 -o vineflower-1.12.0.jar https://repo.maven.apache.org/maven2/org/vineflower/vineflower/1.12.0/vineflower-1.12.0.jar
+          sha256sum vineflower-1.12.0.jar
+          java -jar vineflower-1.12.0.jar --help | head -n 8 || true
       - name: Upload verified decompiler artifact
         uses: actions/upload-artifact@v4
         with:
           name: cfr-decompiler-tool
-          path: cfr-0.152.jar
+          path: |
+            cfr-0.152.jar
+            vineflower-1.12.0.jar
