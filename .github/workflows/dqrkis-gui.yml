@@ -69,19 +69,19 @@ jobs:
                  "    public boolean shouldPause() { return false; }\n}",
                  """    public boolean shouldPause() { return false; }
 
-    @Override
-    public void close() {
-        var clickGuiModule = Dqrkis.INSTANCE.getModuleManager()
-                .getModule(xyz.dqrkis.module.modules.client.ClickGUI.class);
-        if (clickGuiModule != null && clickGuiModule.isEnabled()) {
-            clickGuiModule.setEnabled(false);
-        } else {
-            net.minecraft.client.MinecraftClient.getInstance()
-                    .setScreenAndRender(Dqrkis.INSTANCE.previousScreen);
-        }
-        searchFocused = false;
-    }
-}""")
+              @Override
+              public void close() {
+                  var clickGuiModule = Dqrkis.INSTANCE.getModuleManager()
+                          .getModule(xyz.dqrkis.module.modules.client.ClickGUI.class);
+                  if (clickGuiModule != null && clickGuiModule.isEnabled()) {
+                      clickGuiModule.setEnabled(false);
+                  } else {
+                      net.minecraft.client.MinecraftClient.getInstance()
+                              .setScreenAndRender(Dqrkis.INSTANCE.previousScreen);
+                  }
+                  searchFocused = false;
+              }
+          }""")
 
           change("gui/components/settings/StringBox.java",
                  "mc.setScreen(Dqrkis.INSTANCE.clickGui);",
